@@ -90,6 +90,7 @@ background:linear-gradient(#0000 24%,#e3a35acc 42%,#c98440f2),url(data:image/web
 #card .vr{font-family:Georgia,serif;font-weight:bold;color:#7a1d10;font-size:calc(var(--u)*3.8)}
 #card .rw{display:flex;justify-content:center;gap:6%;margin-top:3%;font-weight:900;color:#6a3c18;font-size:calc(var(--u)*4)}
 #card .rw img{height:1.3em;vertical-align:middle;margin-right:4px}
+#spkrow{display:flex;justify-content:center;gap:4%;margin-top:3%}.sb{background:linear-gradient(#fff,#e8f2ff);border:2px solid #9cc4ee;color:#2a5a9a;font-weight:bold;border-radius:99px;padding:1.5% 5%;font-size:calc(var(--u)*3.4);cursor:pointer;box-shadow:0 2px 0 #7aa4d4}
 #amen{margin:4% auto 0;width:48%;background:linear-gradient(#b8f080,#3aa02a);color:#fff;font-weight:900;font-size:calc(var(--u)*4.4);border-radius:99px;border:3px solid #fff;padding:3% 0;box-shadow:0 4px 0 #1f6a14;text-shadow:0 2px 0 #1f6a14;cursor:pointer}
 #lvup{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;z-index:70;background:#2a1404a0;color:#fff;font-size:calc(var(--u)*11);font-weight:900;text-shadow:0 4px 0 #a55a00,0 0 20px #ffd040;animation:cardin .5s cubic-bezier(.3,1.6,.5,1)}
 #lvup small{font-size:35%;text-shadow:0 2px 0 #000}
@@ -110,7 +111,7 @@ background:linear-gradient(#0000 24%,#e3a35acc 42%,#c98440f2),url(data:image/web
  <div id="info">Tap the words in order to build each verse!</div>
  <div class="btn" id="shufb"><svg viewBox="0 0 24 24"><path d="M4 7h4l8 10h4M4 17h4l2.5-3M13.5 10L16 7h4M18 4l3 3-3 3M18 14l3 3-3 3" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>Shuffle</div>
 </div>
-<div id="cele"><div class="beams"></div><div id="card"><div class="ttl">Verse Complete!</div><div class="vt"></div><div class="vr"></div><div class="rw"></div><div id="amen">Amen!</div></div></div>
+<div id="cele"><div class="beams"></div><div id="card"><div class="ttl">Verse Complete!</div><div class="vt"></div><div class="vr"></div><div class="rw"></div><div id="spkrow"><div id="again" class="sb">🔁 Read again</div><div id="spk" class="sb">🔊</div></div><div id="amen">Amen!</div></div></div>
 <div id="lvup"></div>
 </div>
 <script>
@@ -195,7 +196,7 @@ function renderVerse(){const b=bib[focus];$('vref').textContent='📖 '+b.ref;$(
  $('slots').innerHTML=b.w.map((w,j)=>`<span class="sl ${j<b.got?'f0':'e'}${j==b.got?' nx':''}">${j<b.got?w.raw:w.raw.replace(/./g,'\u2007')}</span>`).join('');fitSlots()}
 function initBibles(){const order=[0,1,2,3,4];order.forEach((bk,i)=>{bib[i]={book:bk,vi:0};loadVerse(bib[i]);
  const el=document.createElement('div');el.className='bible';const CC={john:['#d8402c','#8a1a10'],psalms:['#3a7ae0','#173f8a'],proverbs:['#3aa84a','#16602a'],romans:['#9a4ad8','#55207a'],genesis:['#c8783a','#7a4214']}[BOOKS[bk].id];el.style.setProperty('--c1',CC[0]);el.style.setProperty('--c2',CC[1]);el.innerHTML=`<div class="glow"></div><div class="bk" style="background-image:url(${IMG['b_'+BOOKS[bk].id]})"></div><div class="pg pl"><div class="ref"></div></div><div class="pg pr"><div class="cnt"></div></div><div class="bn"></div><div class="bar"><i></i></div><div class="read">✨ READ</div>`;
- el.onpointerdown=e=>{e.preventDefault();setFocus(i)};el.querySelector('.read').onpointerdown=e=>{e.preventDefault();e.stopPropagation();readVerse(i)};
+ el.onpointerdown=e=>{e.preventDefault();setFocus(i)};const rb=el.querySelector('.read');rb.onpointerdown=e=>e.stopPropagation();rb.onclick=e=>{e.stopPropagation();readVerse(i)};
  $('bibles').appendChild(el);renderBible(i)})}
 function setFocus(i){if(focus==i)return;focus=i;bib.forEach((_,j)=>renderBible(j));renderVerse();tone(660,.07,'sine',.08);const b=bib[i];$('info').textContent=b.got>=b.w.length?'Verse complete! Press READ above '+BOOKS[b.book].name+'.':'Building '+b.ref+' — find "'+b.w[b.got].lab+'"…'.replace(/find ".*"…/,'tap the next word!')}
 // ---------- board ----------
@@ -244,15 +245,14 @@ function tap(i){const k=board[i];if(!k||busy[i]||celebrating)return;idle=0;clear
 function complete(s){const b=bib[s],el=$('bibles').children[s];sfx.done();renderBible(s);if(s==focus)renderVerse();
  const g=G(),r=el.getBoundingClientRect();sparks(r.left-g.left+r.width/2,r.top-g.top+r.height/2,12,50);
  $('info').innerHTML='<span>✨ '+b.ref+' complete! Press <b>READ</b> to celebrate.</span>'}
-function readVerse(s){const b=bib[s];if(b.got<b.w.length||celebrating)return;celebrating=true;sfx.choir();
+function readVerse(s){const b=bib[s];if(b.got<b.w.length||celebrating)return;speakVerse(b);celebrating=true;curSpeak=b;sfx.choir();
  const reward=10+b.w.length*3+st.lvl*2,gems=b.w.length>=14?2:1;b.reward=reward;
  const C=$('cele'),card=$('card');card.querySelector('.vt').innerHTML=b.w.map(w=>`<span>${w.raw}</span>`).join(' ');card.querySelector('.vr').textContent='— '+b.ref+' (KJV)';
  card.querySelector('.rw').innerHTML=`<span><img src="${IMG.coin}">+${reward}</span><span><img src="${IMG.gem}">+${gems}</span>`;
  C.classList.add('on');card.style.animation='none';void card.offsetWidth;card.style.animation='';
  const sp=[...card.querySelectorAll('.vt span')];sp.forEach((x,j)=>setTimeout(()=>x.classList.add('on'),250+j*170));
  const g=G();let n=0;const iv=setInterval(()=>{sparks(g.width*(.15+Math.random()*.7),g.height*(.25+Math.random()*.4),6,50);if(++n>6)clearInterval(iv)},260);
- try{if(window.speechSynthesis){speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(b.txt+' '+b.ref.replace(':',', verse '));u.rate=.92;u.pitch=1;speechSynthesis.speak(u)}}catch(e){}
- st.ge+=gems;b.gems=gems;cele=s;clearTimeout(autoAmen);autoAmen=setTimeout(amen,9000)}
+ st.ge+=gems;b.gems=gems;cele=s;clearTimeout(autoAmen);autoAmen=setTimeout(amen,15000)}
 let cele=-1,autoAmen;
 function amen(){if(cele<0)return;clearTimeout(autoAmen);const s=cele;cele=-1;const b=bib[s];try{speechSynthesis&&speechSynthesis.cancel()}catch(e){}
  $('cele').classList.remove('on');const el=$('bibles').children[s];coinsTo(el,7);floatTxt(el,'+'+b.reward,'#ffe040');st.co+=b.reward;st.vs++;gainXP(6);updHud();
@@ -260,7 +260,19 @@ function amen(){if(cele<0)return;clearTimeout(autoAmen);const s=cele;cele=-1;con
  setTimeout(()=>{sfx.flip();const f=document.createElement('div');f.className='flip';el.appendChild(f);
   setTimeout(()=>{b.vi++;loadVerse(b);labels={};renderBible(s);focus=s;bib.forEach((_,j)=>renderBible(j));renderVerse();ensure();celebrating=false;$('info').textContent='New page: '+b.ref+'. Keep building!'},350);
   setTimeout(()=>f.remove(),720)},250)}
-$('amen').onpointerdown=e=>{e.preventDefault();amen()};
+$('amen').onclick=e=>{e.preventDefault();amen()};
+// ---- speech (iOS-safe: speak synchronously inside click; unlock on first touch) ----
+const SS=window.speechSynthesis;let voice=null,speakOn=localStorage.getItem('bvbSpeak')!=='0',unlocked=false,curSpeak=null;
+function pickVoice(){if(!SS)return;const v=SS.getVoices();voice=v.find(x=>/en[-_]US/i.test(x.lang)&&x.localService)||v.find(x=>/en[-_]US/i.test(x.lang))||v.find(x=>/^en/i.test(x.lang))||null}
+if(SS){pickVoice();SS.onvoiceschanged=pickVoice;if(SS.addEventListener)SS.addEventListener('voiceschanged',pickVoice)}
+function say(text,vol){if(!SS)return;try{SS.cancel();if(SS.paused)SS.resume();const u=new SpeechSynthesisUtterance(text);if(!voice)pickVoice();if(voice){u.voice=voice;u.lang=voice.lang}else u.lang='en-US';u.rate=.92;u.pitch=1;u.volume=vol==null?1:vol;SS.speak(u)}catch(e){}}
+function speakVerse(b){if(speakOn&&b)say(b.txt+' '+b.ref.replace(':',', verse '))}
+function unlock(){try{const c=ac();if(c.state!=='running')c.resume()}catch(e){}if(!unlocked&&SS){unlocked=true;say(' ',0)}}
+['touchend','click','pointerdown','keydown'].forEach(ev=>document.addEventListener(ev,unlock,{capture:true,passive:true}));
+function updSpk(){$('spk').textContent=speakOn?'🔊':'🔇';$('again').style.opacity=speakOn?1:.5}
+$('spk').onclick=e=>{e.stopPropagation();speakOn=!speakOn;localStorage.setItem('bvbSpeak',speakOn?'1':'0');updSpk();if(!speakOn&&SS)SS.cancel();else speakVerse(curSpeak)};
+$('again').onclick=e=>{e.stopPropagation();if(!speakOn){speakOn=true;localStorage.setItem('bvbSpeak','1');updSpk()}speakVerse(curSpeak)};
+updSpk();
 function gainXP(n){st.xp+=n;while(st.xp>=need()){st.xp-=need();st.lvl++;st.ge+=5;sfx.lvl();const l=$('lvup');l.innerHTML='LEVEL '+st.lvl+'!<small>+5 gems</small>';l.style.display='flex';setTimeout(()=>l.style.display='none',1400)}updHud()}
 $('lvup').onpointerdown=()=>$('lvup').style.display='none';
 function updHud(){$('lvlt').textContent=st.lvl;$('co').textContent=st.co.toLocaleString();$('ge').textContent=st.ge;$('vs').textContent=st.vs;$('xp').style.width=(100*st.xp/need())+'%';$('xptxt').textContent=st.xp+' / '+need()+' XP'}
